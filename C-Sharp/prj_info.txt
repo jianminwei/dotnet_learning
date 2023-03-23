@@ -1,0 +1,91 @@
+1. Create a new dotnet console application
+
+    dotnet new console 
+
+    Note: this command will create the console application in the current directory.
+        So create a new application directory first, and then run the command in the
+        directory.
+
+2. If you don't have launch.json and tasks.json generated under .vscode by the C# plugin, do this:
+
+    a. Open the command pallet by Ctrl + Shift + P 
+
+    b. select " .NET: generate assets for build and debug"
+
+
+3. How to do HTTP call
+
+    a. Add "RestSharp" package
+
+        dotnet add package RestSharp
+
+    a.2 Add Newtonsoft.json
+        dotnet add package Newtonsoft.Json
+
+    b. Code Snippet.
+
+        using RestSharp;
+
+        namespace dcf_client
+        {
+
+            class DcfApiTest
+            {
+                static async Task Main(string[] args)
+                {
+                    var options = new RestClientOptions("http://localhost:8080")
+                    {
+                        MaxTimeout = -1,
+                    };
+                    var client = new RestClient(options);
+                    var request = new RestRequest("/api/regions", Method.Post);
+                    request.AddHeader("Content-Type", "application/json");
+                    var body = "{\"name\": \"North East Region\"}";
+                    request.AddStringBody(body, DataFormat.Json);
+                    RestResponse response = await client.ExecuteAsync(request);
+                    Console.WriteLine(response.Content);
+
+                }
+            }
+
+        }
+
+
+4. A better solution, use C# built in HTTP client.
+
+
+using System.Text.Json;
+
+namespace dcf_client
+{
+
+    class Region
+    {
+        public long id { get; set; }
+        public string name { get; set; } = "";
+    }
+
+    class DcfApiTest
+    {
+        static async Task Main(string[] args)
+        {
+            var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:8080/api/regions");
+            var content = new StringContent("{ \"name\": \"North East Region\" }", null, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            var result = response.Content.ReadAsStringAsync().Result;
+
+            Region? region = JsonSerializer.Deserialize<Region>(result);
+
+            if (region is not null)
+            {
+                System.Console.WriteLine(region.id + "," + region.name);
+            }
+
+        }
+    }
+
+}
